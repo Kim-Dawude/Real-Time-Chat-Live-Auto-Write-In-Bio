@@ -1,0 +1,80 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- REMOTES (Sirf Bio Change karne wala remote use hoga)
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local BioRemote = Remotes:FindFirstChild("UpdateRPBio") or Remotes:FindFirstChild("UpdateBio") or Remotes:FindFirstChild("UpdateRPName")
+
+-- ===== POP UP MESSAGE SYSTEM (3-SECOND NOTIFICATION) =====
+local function ShowWelcomeNotification()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "LiveChatNotifyGui"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Main Pop Up Frame (Size text ke mutabiq thori bari ki hai)
+    local NotifyFrame = Instance.new("Frame")
+    NotifyFrame.Size = UDim2.new(0, 320, 0, 50)
+    NotifyFrame.Position = UDim2.new(0.5, -160, 1, 50) -- Screen ke neche se start hoga
+    NotifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    NotifyFrame.BorderSizePixel = 0
+    NotifyFrame.BackgroundTransparency = 0.15
+    NotifyFrame.Parent = ScreenGui
+
+    -- UI Corners for smooth edges
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 8)
+    Corner.Parent = NotifyFrame
+
+    -- Text Label (Aap ka bataya hua dynamic text)
+    local TextLabel = Instance.new("TextLabel")
+    TextLabel.Size = UDim2.new(1, 0, 1, 0)
+    TextLabel.Text = "💬 Real time chat live auto write in bio"
+    TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextLabel.TextSize = 13
+    TextLabel.Font = Enum.Font.GothamBold
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Parent = NotifyFrame
+
+    -- Smooth Slide Up Animation
+    TweenService:Create(NotifyFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -160, 0.85, 0)}):Play()
+    
+    -- ===== 3 SECONDS WAIT TIMER =====
+    task.wait(3.0)
+
+    -- Smooth Slide Down and Fade Out
+    local slideOut = TweenService:Create(NotifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -160, 1, 50), BackgroundTransparency = 1})
+    local textFade = TweenService:Create(TextLabel, TweenInfo.new(0.2), {TextTransparency = 1})
+    
+    slideOut:Play()
+    textFade:Play()
+    
+    -- Delete GUI after animation finishes
+    slideOut.Completed:Connect(function()
+        ScreenGui:Destroy()
+    end)
+end
+
+-- ===== LIVE CHAT TO BIO FUNCTION =====
+local function UpdateBioLive(text)
+    if text and text ~= "" and BioRemote then
+        pcall(function()
+            if BioRemote:IsA("RemoteFunction") then 
+                BioRemote:InvokeServer(text) 
+            else 
+                BioRemote:FireServer(text) 
+            end
+        end)
+    end
+end
+
+-- ===== CHAT LISTENER =====
+LocalPlayer.Chatted:Connect(function(message)
+    -- Jaise hi aap chat mei enter press karenge, yeh direct bio badal dega
+    UpdateBioLive(message)
+end)
+
+-- Run pop up on execution
+task.spawn(ShowWelcomeNotification)
